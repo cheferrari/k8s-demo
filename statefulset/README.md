@@ -114,6 +114,10 @@ web-2   0/1   ContainerCreating   0     0s
 web-2   0/1   ContainerCreating   0     0s
 web-2   1/1   Running   0     1s
 ```
+Pod Management Policies
+In Kubernetes 1.7 and later, StatefulSet allows you to relax its ordering guarantees while preserving its uniqueness and identity guarantees via its .spec.podManagementPolicy field.
+OrderedReady pod management is the default for StatefulSets
+So until web-0 is Running and Ready,the web-1 just will start deploy.
 #### Verify the web servers continue to serve their hostnames.
 ```
 for i in 0 1; do kubectl exec -it web-$i -- curl localhost; done
