@@ -1,7 +1,7 @@
 ## StatefulSet demo
 refer to https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/
 
-#### create ns,headless svc,sts
+#### Create ns,headless svc,sts
 ```
 # kubectl apply -f nginx-with-statefulset.yaml
 
@@ -71,3 +71,54 @@ web-0.nginx.sts-demo.svc.cluster.local.	5 IN A	10.244.1.23
 ;; WHEN: Sun Oct 14 21:00:14 CST 2018
 ;; MSG SIZE  rcvd: 121
 ```
+#### Delete pod for test rescheduling
+```
+[root@k8s-node1 statefulset]# kubectl delete pod -l app=nginx
+pod "web-0" deleted
+pod "web-1" deleted
+pod "web-2" deleted
+[root@k8s-node1 statefulset]#
+```
+#### Open another terminal to watch what happend
+```
+[root@k8s-node1 ~]# kubectl get pods -w -l app=nginx
+NAME    READY   STATUS    RESTARTS   AGE
+web-0   1/1     Running   0          100m
+web-1   1/1     Running   0          100m
+web-2   1/1     Running   0          99m
+web-0   1/1   Terminating   0     103m
+web-1   1/1   Terminating   0     103m
+web-2   1/1   Terminating   0     103m
+web-0   0/1   Terminating   0     103m
+web-1   0/1   Terminating   0     103m
+web-2   0/1   Terminating   0     103m
+web-2   0/1   Terminating   0     103m
+web-2   0/1   Terminating   0     103m
+web-1   0/1   Terminating   0     103m
+web-1   0/1   Terminating   0     103m
+web-0   0/1   Terminating   0     103m
+web-0   0/1   Terminating   0     103m
+web-0   0/1   Pending   0     0s
+web-0   0/1   Pending   0     0s
+web-0   0/1   ContainerCreating   0     0s
+web-0   0/1   ContainerCreating   0     2s
+web-0   1/1   Running   0     3s
+web-1   0/1   Pending   0     0s
+web-1   0/1   Pending   0     0s
+web-1   0/1   ContainerCreating   0     0s
+web-1   0/1   ContainerCreating   0     0s
+web-1   1/1   Running   0     1s
+web-2   0/1   Pending   0     0s
+web-2   0/1   Pending   0     0s
+web-2   0/1   ContainerCreating   0     0s
+web-2   0/1   ContainerCreating   0     0s
+web-2   1/1   Running   0     1s
+```
+#### Verify the web servers continue to serve their hostnames.
+```
+for i in 0 1; do kubectl exec -it web-$i -- curl localhost; done
+web-0
+web-1
+web-2
+```
+Even though web-0,web-1 and web-2 were rescheduled, they continue to serve their hostnames because the PersistentVolumes associated with their PersistentVolumeClaims are remounted to their volumeMounts. No matter what node web-0and web-1 are scheduled on, their PersistentVolumes will be mounted to the appropriate mount points
