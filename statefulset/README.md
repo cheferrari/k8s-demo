@@ -116,8 +116,19 @@ web-2   1/1   Running   0     1s
 ```
 Pod Management Policies
 In Kubernetes 1.7 and later, StatefulSet allows you to relax its ordering guarantees while preserving its uniqueness and identity guarantees via its .spec.podManagementPolicy field.
-OrderedReady pod management is the default for StatefulSets
-So until web-0 is Running and Ready,the web-1 just will start deploy.
+##### OrderedReady pod management is the default for StatefulSets
+##### So until web-0 is Running and Ready,the web-1 just will start deploy.
+##### FIELD:    podManagementPolicy <string>
+DESCRIPTION:
+     podManagementPolicy controls how pods are created during initial scale up,
+     when replacing pods on nodes, or when scaling down. The default policy is
+     `OrderedReady`, where pods are created in increasing order (pod-0, then
+     pod-1, etc) and the controller will wait until each pod is ready before
+     continuing. When scaling down, the pods are removed in the opposite order.
+     The alternative policy is `Parallel` which will create pods in parallel to
+     match the desired scale without waiting, and on scale down will delete all
+     pods at once.
+
 #### Verify the web servers continue to serve their hostnames.
 ```
 for i in 0 1; do kubectl exec -it web-$i -- curl localhost; done
