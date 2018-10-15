@@ -137,3 +137,212 @@ web-1
 web-2
 ```
 Even though web-0,web-1 and web-2 were rescheduled, they continue to serve their hostnames because the PersistentVolumes associated with their PersistentVolumeClaims are remounted to their volumeMounts. No matter what node web-0and web-1 are scheduled on, their PersistentVolumes will be mounted to the appropriate mount points
+
+#### Scale Up and Scale Down
+##### Scale Up, Use command 'kubectl scale'
+```
+# kubectl scale sts web --replicas=6
+statefulset.apps/web scaled
+# kubectl get pod -o wide -w -l app=nginx
+NAME    READY   STATUS    RESTARTS   AGE   IP             NODE        NOMINATED NODE
+web-0   1/1     Running   0          46s   10.244.0.122   k8s-node1   <none>
+web-1   1/1     Running   0          45s   10.244.1.45    k8s-node2   <none>
+web-2   1/1     Running   0          31s   10.244.0.123   k8s-node1   <none>
+web-3   0/1   Pending   0     0s    <none>   <none>   <none>
+web-3   0/1   Pending   0     0s    <none>   <none>   <none>
+web-3   0/1   Pending   0     3s    <none>   k8s-node2   <none>
+web-3   0/1   ContainerCreating   0     3s    <none>   k8s-node2   <none>
+web-3   0/1   ContainerCreating   0     4s    <none>   k8s-node2   <none>
+web-3   1/1   Running   0     4s    10.244.1.46   k8s-node2   <none>
+web-4   0/1   Pending   0     0s    <none>   <none>   <none>
+web-4   0/1   Pending   0     0s    <none>   <none>   <none>
+web-4   0/1   Pending   0     14s   <none>   k8s-node1   <none>
+web-4   0/1   ContainerCreating   0     14s   <none>   k8s-node1   <none>
+web-4   0/1   ContainerCreating   0     15s   <none>   k8s-node1   <none>
+web-4   1/1   Running   0     16s   10.244.0.124   k8s-node1   <none>
+web-5   0/1   Pending   0     0s    <none>   <none>   <none>
+web-5   0/1   Pending   0     0s    <none>   <none>   <none>
+web-5   0/1   Pending   0     0s    <none>   k8s-node2   <none>
+web-5   0/1   ContainerCreating   0     0s    <none>   k8s-node2   <none>
+web-5   0/1   ContainerCreating   0     0s    <none>   k8s-node2   <none>
+web-5   1/1   Running   0     1s    10.244.1.47   k8s-node2   <none>
+```
+##### Scale Down, Use command 'kubectl patch'
+```
+# kubectl patch sts web -p '{"spec":{"replicas":3}}'
+statefulset.apps/web patched
+# kubectl get pod -o wide -w -l app=nginx
+NAME    READY   STATUS    RESTARTS   AGE     IP             NODE        NOMINATED NODE
+web-0   1/1     Running   0          10m     10.244.0.122   k8s-node1   <none>
+web-1   1/1     Running   0          10m     10.244.1.45    k8s-node2   <none>
+web-2   1/1     Running   0          10m     10.244.0.123   k8s-node1   <none>
+web-3   1/1     Running   0          6m13s   10.244.1.46    k8s-node2   <none>
+web-4   1/1     Running   0          6m9s    10.244.0.124   k8s-node1   <none>
+web-5   1/1     Running   0          5m53s   10.244.1.47    k8s-node2   <none>
+web-5   1/1   Terminating   0     6m7s   10.244.1.47   k8s-node2   <none>
+web-5   0/1   Terminating   0     6m8s   10.244.1.47   k8s-node2   <none>
+web-5   0/1   Terminating   0     6m9s   10.244.1.47   k8s-node2   <none>
+web-5   0/1   Terminating   0     6m9s   10.244.1.47   k8s-node2   <none>
+web-4   1/1   Terminating   0     6m25s   10.244.0.124   k8s-node1   <none>
+web-4   0/1   Terminating   0     6m26s   10.244.0.124   k8s-node1   <none>
+web-4   0/1   Terminating   0     6m27s   10.244.0.124   k8s-node1   <none>
+web-4   0/1   Terminating   0     6m27s   10.244.0.124   k8s-node1   <none>
+web-3   1/1   Terminating   0     6m31s   10.244.1.46   k8s-node2   <none>
+web-3   0/1   Terminating   0     6m32s   10.244.1.46   k8s-node2   <none>
+web-3   0/1   Terminating   0     6m33s   10.244.1.46   k8s-node2   <none>
+web-3   0/1   Terminating   0     6m33s   10.244.1.46   k8s-node2   <none>
+```
+#### Update Strategy
+##### Rolling Update 滚动更新（自动）
+逆序自动化更新Pod
+###### 自定义滚动更新策略
+```
+# kubectl explain sts.spec.updateStrategy.rollingUpdate
+KIND:     StatefulSet
+VERSION:  apps/v1
+
+RESOURCE: rollingUpdate <Object>
+
+DESCRIPTION:
+     RollingUpdate is used to communicate parameters when Type is
+     RollingUpdateStatefulSetStrategyType.
+
+     RollingUpdateStatefulSetStrategy is used to communicate parameter for
+     RollingUpdateStatefulSetStrategyType.
+
+FIELDS:
+   partition	<integer>
+     Partition indicates the ordinal at which the StatefulSet should be
+     partitioned. Default value is 0.
+```
+若 partition = N, 则 Pod 编号 >= N 的将会更新
+###### 实践:
+####### patch 打补丁设置 partition=4
+```
+[root@k8s-node1 statefulset]# kubectl patch sts web -p '{"spec":{"updateStrategy":{"rollingUpdate":{"partition":4}}}}'
+statefulset.apps/web patched
+[root@k8s-node1 statefulset]# 
+[root@k8s-node1 statefulset]# kubectl describe sts web
+···
+Replicas:           6 desired | 6 total
+Update Strategy:    RollingUpdate
+  Partition:        4
+···
+```
+####### 打补丁更新pod镜像或直接set image 更新镜像
+```
+# kubectl set image sts web nginx=nginx:1.15-alpine
+statefulset.apps/web image updated
+# kubectl get pod -o wide -w -l app=nginx
+NAME    READY   STATUS    RESTARTS   AGE   IP             NODE        NOMINATED NODE
+web-0   1/1     Running   0          19m   10.244.0.122   k8s-node1   <none>
+web-1   1/1     Running   0          19m   10.244.1.45    k8s-node2   <none>
+web-2   1/1     Running   0          19m   10.244.0.123   k8s-node1   <none>
+web-3   1/1     Running   0          7s    10.244.1.48    k8s-node2   <none>
+web-4   1/1     Running   0          6s    10.244.1.49    k8s-node2   <none>
+web-5   1/1     Running   0          4s    10.244.0.125   k8s-node1   <none>
+web-5   1/1   Terminating   0     4m10s   10.244.0.125   k8s-node1   <none>
+web-5   0/1   Terminating   0     4m12s   10.244.0.125   k8s-node1   <none>
+web-5   0/1   Terminating   0     4m18s   10.244.0.125   k8s-node1   <none>
+web-5   0/1   Terminating   0     4m18s   10.244.0.125   k8s-node1   <none>
+web-5   0/1   Pending   0     0s    <none>   <none>   <none>
+web-5   0/1   Pending   0     0s    <none>   k8s-node1   <none>
+web-5   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-5   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-5   1/1   Running   0     5s    10.244.0.126   k8s-node1   <none>
+web-4   1/1   Terminating   0     4m25s   10.244.1.49   k8s-node2   <none>
+web-4   0/1   Terminating   0     4m26s   10.244.1.49   k8s-node2   <none>
+web-4   0/1   Terminating   0     4m31s   10.244.1.49   k8s-node2   <none>
+web-4   0/1   Terminating   0     4m31s   10.244.1.49   k8s-node2   <none>
+web-4   0/1   Pending   0     0s    <none>   <none>   <none>
+web-4   0/1   Pending   0     1s    <none>   k8s-node2   <none>
+web-4   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-4   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-4   1/1   Running   0     5s    10.244.1.50   k8s-node2   <none>
+# kubectl describe pod web-3
+···
+Containers:
+  nginx:
+    Container ID:   docker://57cbb191c2ad7f4ad2f1ac0cef6341e5022afe6358ad3b5bfe50846111064d30
+    Image:          nginx:1.14.0-alpine
+···
+# kubectl describe pod web-4
+···
+Containers:
+  nginx:
+    Container ID:   docker://a9c8de6e699a8aa8b9d80d0a8004460c1bc1a240e83bcadb3d8ca7c96ca16a0e
+    Image:          nginx:1.15-alpine
+···
+```
+sts/web 现在共有6个副本Pod，设置spec.updateStrategy.rollingUpdate.partition=4，更新补丁打好后，逆序从web-5更新，更新到web-4（包含web-4）停止，其余的不再更新，更新完后，可以看 web-3 的 image依然为 nginx:1.14.0-alpine，没有更新; web-4 的 image 更新到 nginx:1.15-alpine
+####### 这种更新类似于“金丝雀部署”
+
+####### 继续操作，patch 打补丁设置 partition=0
+```
+# kubectl patch sts web -p '{"spec":{"updateStrategy":{"rollingUpdate":{"partition":0}}}}'
+statefulset.apps/web patched
+# kubectl get pod -o wide -w -l app=nginx
+NAME    READY   STATUS    RESTARTS   AGE   IP             NODE        NOMINATED NODE
+web-0   1/1     Running   0          19m   10.244.0.122   k8s-node1   <none>
+web-1   1/1     Running   0          19m   10.244.1.45    k8s-node2   <none>
+web-2   1/1     Running   0          19m   10.244.0.123   k8s-node1   <none>
+web-3   1/1     Running   0          7s    10.244.1.48    k8s-node2   <none>
+web-4   1/1     Running   0          6s    10.244.1.49    k8s-node2   <none>
+web-5   1/1     Running   0          4s    10.244.0.125   k8s-node1   <none>
+web-5   1/1   Terminating   0     4m10s   10.244.0.125   k8s-node1   <none>
+web-5   0/1   Terminating   0     4m12s   10.244.0.125   k8s-node1   <none>
+web-5   0/1   Terminating   0     4m18s   10.244.0.125   k8s-node1   <none>
+web-5   0/1   Terminating   0     4m18s   10.244.0.125   k8s-node1   <none>
+web-5   0/1   Pending   0     0s    <none>   <none>   <none>
+web-5   0/1   Pending   0     0s    <none>   k8s-node1   <none>
+web-5   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-5   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-5   1/1   Running   0     5s    10.244.0.126   k8s-node1   <none>
+web-4   1/1   Terminating   0     4m25s   10.244.1.49   k8s-node2   <none>
+web-4   0/1   Terminating   0     4m26s   10.244.1.49   k8s-node2   <none>
+web-4   0/1   Terminating   0     4m31s   10.244.1.49   k8s-node2   <none>
+web-4   0/1   Terminating   0     4m31s   10.244.1.49   k8s-node2   <none>
+web-4   0/1   Pending   0     0s    <none>   <none>   <none>
+web-4   0/1   Pending   0     1s    <none>   k8s-node2   <none>
+web-4   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-4   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-4   1/1   Running   0     5s    10.244.1.50   k8s-node2   <none>
+web-3   1/1   Terminating   0     12m   10.244.1.48   k8s-node2   <none>
+web-3   0/1   Terminating   0     12m   10.244.1.48   k8s-node2   <none>
+web-3   0/1   Terminating   0     12m   10.244.1.48   k8s-node2   <none>
+web-3   0/1   Terminating   0     12m   10.244.1.48   k8s-node2   <none>
+web-3   0/1   Pending   0     0s    <none>   <none>   <none>
+web-3   0/1   Pending   0     0s    <none>   k8s-node2   <none>
+web-3   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-3   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-3   1/1   Running   0     2s    10.244.1.51   k8s-node2   <none>
+web-2   1/1   Terminating   0     31m   10.244.0.123   k8s-node1   <none>
+web-2   0/1   Terminating   0     31m   10.244.0.123   k8s-node1   <none>
+web-2   0/1   Terminating   0     31m   10.244.0.123   k8s-node1   <none>
+web-2   0/1   Terminating   0     31m   10.244.0.123   k8s-node1   <none>
+web-2   0/1   Pending   0     0s    <none>   <none>   <none>
+web-2   0/1   Pending   0     0s    <none>   k8s-node1   <none>
+web-2   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-2   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-2   1/1   Running   0     0s    10.244.0.127   k8s-node1   <none>
+web-1   1/1   Terminating   0     31m   10.244.1.45   k8s-node2   <none>
+web-1   0/1   Terminating   0     31m   10.244.1.45   k8s-node2   <none>
+web-1   0/1   Terminating   0     32m   10.244.1.45   k8s-node2   <none>
+web-1   0/1   Terminating   0     32m   10.244.1.45   k8s-node2   <none>
+web-1   0/1   Pending   0     0s    <none>   <none>   <none>
+web-1   0/1   Pending   0     0s    <none>   k8s-node2   <none>
+web-1   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-1   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-1   1/1   Running   0     2s    10.244.1.52   k8s-node2   <none>
+web-0   1/1   Terminating   0     32m   10.244.0.122   k8s-node1   <none>
+web-0   0/1   Terminating   0     32m   10.244.0.122   k8s-node1   <none>
+web-0   0/1   Terminating   0     32m   10.244.0.122   k8s-node1   <none>
+web-0   0/1   Terminating   0     32m   10.244.0.122   k8s-node1   <none>
+web-0   0/1   Pending   0     0s    <none>   <none>   <none>
+web-0   0/1   Pending   0     0s    <none>   k8s-node1   <none>
+web-0   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-0   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-0   1/1   Running   0     1s    10.244.0.128   k8s-node1   <none>
+```
+可以看到接着上次，从web-3开始更新，一致更新到web-0 ,所有Pod均被更新了image
+
