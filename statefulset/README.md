@@ -346,3 +346,76 @@ web-0   1/1   Running   0     1s    10.244.0.128   k8s-node1   <none>
 ```
 可以看到接着上次，从web-3开始更新，一致更新到web-0 ,所有Pod均被更新了image
 
+####### 继续操作，patch 打补丁更新image，设置 spec.template.spec.containers.image=nginx:1.14.0-alpine
+patch 命令参考:https://kubernetes.io/docs/reference/kubectl/cheatsheet/#patching-resources
+```
+# kubectl patch sts web -p '{"sepc":{"template":{"spec":{"containers":{"image":"nginx-1.14.0:alpine"}}}}}'
+statefulset.apps/web patched (no change)
+```
+？？？不知是否是上面用了set image 导致这个问题，现在继续用set image 操作
+```
+# kubectl set image sts web nginx=nginx:1.14.0-alpine
+statefulset.apps/web image updated
+# kubectl get pod -o wide -w -l app=nginx
+NAME    READY   STATUS    RESTARTS   AGE     IP             NODE        NOMINATED NODE
+web-0   1/1     Running   0          4m59s   10.244.0.128   k8s-node1   <none>
+web-1   1/1     Running   0          5m8s    10.244.1.52    k8s-node2   <none>
+web-2   1/1     Running   0          5m19s   10.244.0.127   k8s-node1   <none>
+web-3   1/1     Running   0          5m28s   10.244.1.51    k8s-node2   <none>
+web-4   1/1     Running   0          13m     10.244.1.50    k8s-node2   <none>
+web-5   1/1     Running   0          13m     10.244.0.126   k8s-node1   <none>
+web-5   1/1   Terminating   0     25m   10.244.0.126   k8s-node1   <none>
+web-5   0/1   Terminating   0     25m   10.244.0.126   k8s-node1   <none>
+web-5   0/1   Terminating   0     25m   10.244.0.126   k8s-node1   <none>
+web-5   0/1   Terminating   0     25m   10.244.0.126   k8s-node1   <none>
+web-5   0/1   Pending   0     0s    <none>   <none>   <none>
+web-5   0/1   Pending   0     0s    <none>   k8s-node1   <none>
+web-5   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-5   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-5   1/1   Running   0     1s    10.244.0.129   k8s-node1   <none>
+web-4   1/1   Terminating   0     24m   10.244.1.50   k8s-node2   <none>
+web-4   0/1   Terminating   0     24m   10.244.1.50   k8s-node2   <none>
+web-4   0/1   Terminating   0     25m   10.244.1.50   k8s-node2   <none>
+web-4   0/1   Terminating   0     25m   10.244.1.50   k8s-node2   <none>
+web-4   0/1   Pending   0     0s    <none>   <none>   <none>
+web-4   0/1   Pending   0     1s    <none>   k8s-node2   <none>
+web-4   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-4   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-4   1/1   Running   0     2s    10.244.1.53   k8s-node2   <none>
+web-3   1/1   Terminating   0     17m   10.244.1.51   k8s-node2   <none>
+web-3   0/1   Terminating   0     17m   10.244.1.51   k8s-node2   <none>
+web-3   0/1   Terminating   0     17m   10.244.1.51   k8s-node2   <none>
+web-3   0/1   Terminating   0     17m   10.244.1.51   k8s-node2   <none>
+web-3   0/1   Pending   0     0s    <none>   <none>   <none>
+web-3   0/1   Pending   0     1s    <none>   k8s-node2   <none>
+web-3   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-3   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-3   1/1   Running   0     2s    10.244.1.54   k8s-node2   <none>
+web-2   1/1   Terminating   0     17m   10.244.0.127   k8s-node1   <none>
+web-2   0/1   Terminating   0     17m   10.244.0.127   k8s-node1   <none>
+web-2   0/1   Terminating   0     17m   10.244.0.127   k8s-node1   <none>
+web-2   0/1   Terminating   0     17m   10.244.0.127   k8s-node1   <none>
+web-2   0/1   Pending   0     0s    <none>   <none>   <none>
+web-2   0/1   Pending   0     0s    <none>   k8s-node1   <none>
+web-2   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-2   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-2   1/1   Running   0     1s    10.244.0.130   k8s-node1   <none>
+web-1   1/1   Terminating   0     17m   10.244.1.52   k8s-node2   <none>
+web-1   0/1   Terminating   0     17m   10.244.1.52   k8s-node2   <none>
+web-1   0/1   Terminating   0     17m   10.244.1.52   k8s-node2   <none>
+web-1   0/1   Terminating   0     17m   10.244.1.52   k8s-node2   <none>
+web-1   0/1   Pending   0     1s    <none>   <none>   <none>
+web-1   0/1   Pending   0     1s    <none>   k8s-node2   <none>
+web-1   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-1   0/1   ContainerCreating   0     1s    <none>   k8s-node2   <none>
+web-1   1/1   Running   0     2s    10.244.1.55   k8s-node2   <none>
+web-0   1/1   Terminating   0     17m   10.244.0.128   k8s-node1   <none>
+web-0   0/1   Terminating   0     17m   10.244.0.128   k8s-node1   <none>
+web-0   0/1   Terminating   0     17m   10.244.0.128   k8s-node1   <none>
+web-0   0/1   Terminating   0     17m   10.244.0.128   k8s-node1   <none>
+web-0   0/1   Pending   0     0s    <none>   <none>   <none>
+web-0   0/1   Pending   0     0s    <none>   k8s-node1   <none>
+web-0   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-0   0/1   ContainerCreating   0     0s    <none>   k8s-node1   <none>
+web-0   1/1   Running   0     1s    10.244.0.131   k8s-node1   <none>
+```
