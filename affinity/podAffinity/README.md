@@ -8,8 +8,8 @@ spec.affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution.labelSe
 这里我们集群只有两个节点，我们用 Node 默认 label "kubernetes.io/hostname" 判定不同的拓扑域  
 即：k8s-node1 和 k8s-node2 属于两个拓扑域
 ### 总结：
-* labelSelector 选出亲和性的Pod（pod标签），要和 亲和的Pod 部署在同一拓扑域
-* topologyKey 根据节点标签判定是否属于同一拓扑域
+* __labelSelector 选出亲和性的Pod（pod标签），要和 亲和的Pod 部署在同一拓扑域__
+* __topologyKey 根据节点标签判定是否属于同一拓扑域__
 ```
 [root@k8s-node1 affinity]# kubectl apply -f pod-required-affinity.yaml 
 pod/pod-required-affinity-first created
