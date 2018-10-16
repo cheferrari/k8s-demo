@@ -1,7 +1,7 @@
 ## Pod Affinity/antiAffinity
 ### Pod Affinity Demo
 the second pod "db" want to co-located with the first pod nginx  
-当第一个pod被调度后，第二个pod设置了硬性pod亲和性规则（表明我跟那些pod亲和），意思就是第二个pod要跟随第一个pod部署在同一个拓扑域“topology domain”中（这就是所谓的节点亲和）  
+当第一个pod被调度后，第二个pod设置了硬性pod亲和性规则（表明我跟哪些pod亲和），意思就是第二个pod要跟随第一个pod部署在同一个拓扑域“topology domain”中（这就是所谓的节点亲和）  
 spec.affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution.labelSelector 就是选出来具有这些标签的pod，说明我跟这些pod亲和  
 调度的时候把我调度到跟具有这些标签的pod 所在的拓扑域。  
 那么怎么判定那些节点属于同一拓扑域呢？用 "node label" 即节点上的标签判定，将具有相同节点标签的节点判定属于同一个“拓扑域”  
