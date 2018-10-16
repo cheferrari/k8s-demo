@@ -10,6 +10,8 @@ NAME                               READY   STATUS    RESTARTS   AGE   IP        
 pod-required-antiaffinity-first    1/1     Running   0          9s    10.244.0.134   k8s-node1   <none>
 pod-required-antiaffinity-second   1/1     Running   0          9s    10.244.1.61    k8s-node2   <none>
 ```
+可以看到 两个pod 现在互斥，被调度到不同的节点（拓扑域）上了  
+这里我们的 topologyKey=kubernetes.io/hostname 即不同的节点就属于不同的拓扑域
 #### Pod Anti Affinity rules
 ```
 apiVersion: v1
