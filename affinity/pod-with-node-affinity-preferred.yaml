@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: with-node-affinity-preferred
+spec:
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 50
+        preference:
+          matchExpressions:
+          - key: zone
+            operator: In
+            values:
+            - foo
+  containers:
+  - name: nginx-with-node-affinity
+    image: nginx:alpine
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 80
