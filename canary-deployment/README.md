@@ -3,7 +3,7 @@
 两个deployment分别对应版本v1和v2，但他们都有共同的标签 app=webserver，那么service 通过这个标签可以把两个版本的Pod都选中作为后端  
 v1有三个副本，v2副本有一个，service采用轮询策略，那么4个请求中，会分发到v1三个，v2一个，以此做到流量分发的效果  
 #### k8s-canary 示意图
-![k8s-canary]https://github.com/cheferrari/k8s-ingress-controller-demo/blob/master/Traefik/img/k8s-canary.png)
+![k8s-canary](https://github.com/cheferrari/k8s-ingress-controller-demo/blob/master/Traefik/img/k8s-canary.png)
 ```
 # cat my-web.yaml 
 apiVersion: v1
