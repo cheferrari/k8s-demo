@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+ name: k8s-canary-deploy
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-v1
+  namespace: k8s-canary-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webserver
+      version: webserver-version-1
+  template:
+    metadata:
+      labels:
+        app: webserver
+        version: webserver-version-1
+    spec:
+      containers:
+      - name: webserver-version-1
+        image: ferrariche/myweb:v1
+        resources:
+          requests:
+            cpu: 0.1
+            memory: 150
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-v2
+  namespace: k8s-canary-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webserver
+      version: webserver-version-2
+  template:
+    metadata:
+      labels:
+        app: webserver
+        version: webserver-version-2
+    spec:
+      containers:
+      - name: webserver-version-2
+        image: ferrariche/myweb:v2
+        resources:
+          requests:
+            cpu: 0.1
+            memory: 150
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webserver
+  namespace: k8s-canary-deploy
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: webserver
