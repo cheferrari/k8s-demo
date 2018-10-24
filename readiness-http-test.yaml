@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: myweb
+  labels:
+    run: myweb
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    run: myweb
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: readiness-http
+  labels:
+    run: myweb
+    test: readiness
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      run: myweb
+      test: readiness-http
+  template:
+    metadata:
+      labels:
+        run: myweb
+        test: readiness-http
+    spec:
+      containers:
+      - name: readiness
+        image: nginx:alpine
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /index.html
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 3
+          successThreshold: 1
